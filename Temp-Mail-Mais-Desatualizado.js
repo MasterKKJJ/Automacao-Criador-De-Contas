@@ -1,35 +1,49 @@
 const { connect } = require("puppeteer-real-browser");
 
-(async () => {
+async function CriarEmail() {
   let browser, page;
   try {
     // Conecta ao navegador com as configurações desejadas
     ({ browser, page } = await connect({
       args: [],
       headless: false, // Deixa o navegador visível
-      connectOption: { defaultViewport: null }
+      connectOption: { defaultViewport: null },
+      turnstile: true
     }));
 
-    // Substitua pela URL do seu endpoint
+    // Define o endpoint do temp-mail e navega até ele
     const endpoint = "https://temp-mail.org/pt/";
     await page.goto(endpoint, { waitUntil: "networkidle2" });
 
+    // Aguarda 6 segundos para o site carregar
+    console.log("Aguarde 10 segundos");
+    await new Promise(r => setTimeout(r, 10000));
+
+    // Extrai o email exibido na página (pode ser .value ou .innerText, dependendo do elemento)
+    const email = await page.evaluate(() => {
+      const mailEl = document.querySelector("#mail");
+      return mailEl ? mailEl.value || mailEl.innerText : null;
+    });
+
+    console.log("Email gerado:", email);
+
+    // Inicia o monitoramento dos emails recebidos (o container de emails)
     const containerSelector =
       "#tm-body > main > div:nth-child(1) > div > div.col-sm-12.col-md-12.col-lg-12.col-xl-8 > div.tm-content > div > div.inboxWarpMain > div > div.inbox-dataList";
     await page.waitForSelector(containerSelector);
 
-    // Função para extrair os itens da lista
+    // Conjunto para registrar links já processados (para evitar duplicidade)
+    const openedLinks = new Set();
 
-    const openedLinks = new Set(); // Conjunto para registrar links já abertos
-
+    // Inicia a verificação periódica (a cada 5 segundos)
     setInterval(async () => {
-      // Extrai os links de cada item, ignorando o primeiro <li> (cabeçalho "Assunto")
+      // Extrai os links de cada item da lista, ignorando o cabeçalho (primeiro <li>)
       const links = await page.evaluate(containerSel => {
         const container = document.querySelector(containerSel);
         if (!container) return [];
         const items = container.querySelectorAll("ul > li");
         let result = [];
-        // Inicia em 1 para pular o cabeçalho
+        // Inicia em 1 para pular o cabeçalho "Assunto"
         for (let i = 1; i < items.length; i++) {
           const li = items[i];
           const anchor = li.querySelector(
@@ -52,7 +66,6 @@ const { connect } = require("puppeteer-real-browser");
           await emailPage.goto(link, { waitUntil: "networkidle2" });
 
           // Procura o link de verificação dentro da aba do email
-
           const verifyHref = await emailPage.evaluate(async () => {
             // Aguarda um pouco para o conteúdo carregar
             await new Promise(r => setTimeout(r, 2000));
@@ -65,7 +78,7 @@ const { connect } = require("puppeteer-real-browser");
               return el.href || el.getAttribute("href");
             }
 
-            // Define as palavras-chave para procurar
+            // Define as palavras-chave para procurar (incluindo variações)
             const keywords = [
               "verify",
               "verificar",
@@ -109,7 +122,6 @@ const { connect } = require("puppeteer-real-browser");
               "check account"
             ];
 
-            // Função auxiliar para obter o texto de um elemento em minúsculas
             const getText = element => element.innerText.toLowerCase();
 
             // Procura entre todos os links (<a>)
@@ -133,7 +145,7 @@ const { connect } = require("puppeteer-real-browser");
             return null;
           });
 
-          if (await verifyHref) {
+          if (verifyHref) {
             console.log("Link de verificação encontrado:", verifyHref);
             // Abre a aba de verificação
             const verifyPage = await browser.newPage();
@@ -153,11 +165,11 @@ const { connect } = require("puppeteer-real-browser");
       }
     }, 5000);
 
-    // O navegador permanecerá aberto para continuar a leitura.
-    // Você pode adicionar outras funcionalidades ou encerrar manualmente quando necessário.
+    // Retorna o email extraído dentro de um objeto
+    return { email };
   } catch (error) {
     console.error("Erro na execução:", error);
-    if (browser) {
-    }
   }
-})();
+}
+
+module.exports = { CriarEmail };
