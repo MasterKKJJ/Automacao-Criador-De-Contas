@@ -1,0 +1,19 @@
+{
+  "name": "automacoes",
+  "type": "commonjs",
+  "version": "1.0.0",
+  "description": "Automações do Master !",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Enderson (Master)",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "puppeteer": "^24.1.1",
+    "puppeteer-extra-plugin-recaptcha": "^3.6.8",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-real-browser": "^1.4.0"
+  }
+}
