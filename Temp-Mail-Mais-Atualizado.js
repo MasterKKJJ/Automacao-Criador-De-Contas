@@ -13,7 +13,7 @@ async function CriarEmail() {
 
     // Define o endpoint do temp-mail e navega até ele
     const endpoint = "https://temp-mail.org/pt/";
-    await page.goto(endpoint, { waitUntil: "networkidle2" });
+    await page.goto(endpoint, { waitUntil: "networkidle0" });
 
     await page.waitForSelector("#mail", { timeout: 10000 });
     // Loop para extrair o email somente quando ele for válido
@@ -28,7 +28,7 @@ async function CriarEmail() {
       // aguarda um pouco antes de tentar novamente.
       if (!email || email.toLowerCase().includes("a carregar...")) {
         email = null; // força continuar o loop
-        await sleep(1000); // espera 1 segundo
+        await new Promise(r => setTimeout(r, 1000));
       }
     } while (!email);
 
@@ -157,8 +157,8 @@ async function CriarEmail() {
             // Abre a aba de verificação
             const verifyPage = await browser.newPage();
             await verifyPage.goto(verifyHref, { waitUntil: "networkidle2" });
-            // Espera 5 segundos
-            await new Promise(r => setTimeout(r, 5000));
+
+            await new Promise(r => setTimeout(r, 9000));
             // Fecha a aba de verificação
             await verifyPage.close();
           } else {

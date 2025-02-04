@@ -2,7 +2,7 @@
 node_modules/
 dist/
 coverage/
-
+t.js
 # Arquivos de ambiente
 .env
 

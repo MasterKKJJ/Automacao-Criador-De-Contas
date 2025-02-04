@@ -11,11 +11,30 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function EscreverNosCamposCadastro(page, creds) {
+async function EscreverNosCamposLogin(page, creds) {
+  if (
+    page.url() !==
+    "https://securitytrails.com/app/auth/login?return=/app/account/credentials"
+  ) {
+    await page.goto(
+      "https://securitytrails.com/app/auth/login?return=/app/account/credentials"
+    );
+  }
+
+  await page.type("#email", creds.email, { delay: 100 });
+  await page.type("#password", creds.password, { delay: 100 });
+  await page.click("#app-content > div > form > div.mt-6 > button", {
+    waitUntil: "networkidle0"
+  });
+  await delay(2000);
+}
+async function EscreverNosCamposCadastro(page, browser, creds) {
   const signupUrl =
     "https://securitytrails.com/app/signup?utm_source=st-home&utm_medium=button&utm_campaign=top";
-  await page.goto(signupUrl, { waitUntil: "domcontentloaded" });
-  await delay(1000);
+
+  await page.goto(signupUrl, { waitUntil: "networkidle0" });
+  await page.waitForNavigation({ waitUntil: "networkidle2" });
+  await delay(6000);
 
   // Verifica se o formulário esperado está presente
   // Caso o campo "#name" não exista, pode ser que um captcha ou outro elemento esteja no lugar
@@ -23,7 +42,7 @@ async function EscreverNosCamposCadastro(page, creds) {
   if (!nameExists) {
     // Você pode optar por lançar um erro ou pausar para intervenção manual
     throw new Error(
-      "Campo de cadastro não encontrado – possivelmente um captcha está impedindo a visualização."
+      "Campo de cadastro não encontrado - possivelmente um captcha está impedindo a visualização."
     );
   }
 
@@ -35,21 +54,107 @@ async function EscreverNosCamposCadastro(page, creds) {
   await page.click(
     "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(6) > div.flex.items-center > div.checkbox > label"
   );
+  await delay(1000);
+
   await page.click(
     "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(7) > span > button",
     { waitUntil: "networkidle0" }
   );
 
-  await AcessarApi(page, creds);
+  await delay(3000);
+  let primeiraTentativa = true;
+
+  async function capturarErro(page) {
+    let seletorErro;
+
+    if (primeiraTentativa) {
+      seletorErro =
+        "#__next > div:nth-child(3) > div > div:nth-child(1) > div > div.flex.place-items-center.flex-grow.py-4.leading-6.font-light.text-white";
+      primeiraTentativa = false; // Marca que a primeira tentativa já foi feita
+    } else {
+      seletorErro =
+        "#__next > div:nth-child(3) > div > div:nth-child(2) > div > div.flex.place-items-center.flex-grow.py-4.leading-6.font-light.text-white";
+    }
+
+    try {
+      await page.waitForSelector(seletorErro, { timeout: 2000 }); // Aguarda o balão aparecer
+      const erro = await page.$eval(seletorErro, el =>
+        el.innerText.trim().toLowerCase()
+      );
+
+      console.log("Erro detectado:", erro);
+
+      return erro;
+    } catch (e) {
+      console.log("Nenhum erro detectado.");
+      return null;
+    }
+  }
+
+  // Defina o seletor do botão em uma constante para facilitar
+  const buttonSelector =
+    "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(7) > span > button";
+
+  let erro = await capturarErro(page);
+
+  // Loop para tentar corrigir enquanto "erro" for nulo, "invalid recaptcha" ou undefined
+  while (
+    erro !== "congratulations! your account has been created successfully!" &&
+    (erro === null || erro === undefined || erro === "invalid recaptcha")
+  ) {
+    try {
+      erro = await capturarErro(page);
+    } catch (e) {
+      console.log("Erro ao avaliar o elemento de erro:", e);
+      erro = await capturarErro(page);
+    }
+    try {
+      const newPage = await browser.newPage();
+      await newPage.goto("https://google.com", { waitUntil: "networkidle0" });
+      await newPage.close();
+    } catch (e) {
+      console.log("Erro ao abrir nova aba:", e);
+    }
+
+    // Aguarda 2 segundos
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Tenta clicar no botão, aguardando que o elemento esteja presente
+    try {
+      await page.waitForSelector(buttonSelector, { timeout: 5000 });
+      console.log("Clicando no botão para tentar novamente...");
+      await page.click(buttonSelector, { waitUntil: "networkidle0" });
+    } catch (clickError) {
+      try {
+        if (page.url() === "https://securitytrails.com/app/verify") {
+          await page.reload({ waitUntil: "networkidle0" });
+          console.log(page.url());
+          console.log("Página recarregada por ausência do botão.");
+          // ele vem para cá e depois da um reload e fica abrindo o google novamente
+        }
+      } catch (reloadError) {
+        console.log("Erro ao recarregar a página:", reloadError);
+      }
+    }
+
+    // Aguarda 1 segundo antes de reavaliar
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  console.log("Saiu");
+  await new Promise(r => setTimeout(r, 3000));
+  await AcessarApi(page);
 }
 
-async function AcessarApi(page, creds) {
+async function AcessarApi(page) {
   const credentialsUrl = "https://securitytrails.com/app/account/credentials";
-  if (page.url() !== credentialsUrl) {
-    await page.goto(credentialsUrl);
+  while (page.url() !== credentialsUrl) {
+    await page.goto(credentialsUrl, { waitUntil: "networkidle0" });
   }
 
   // Tenta clicar no botão que aciona a criação de API
+
+  await await new Promise(resolve => setTimeout(resolve, 3000));
   const buttonSelector =
     "#domain-pages > div > div.bg-white.dark\\:bg-black-90.rounded-2xl.p-6.mt-6 > div > div.text-right.my-6 > button";
   await page.click(buttonSelector, { waitUntil: "networkidle0" });
@@ -73,8 +178,8 @@ async function AcessarApi(page, creds) {
   console.log(api);
 }
 
-async function SecurityTrails(page, creds) {
-  await EscreverNosCamposCadastro(page, creds);
+async function SecurityTrails(page, browser, creds) {
+  await EscreverNosCamposCadastro(page, browser, creds);
 
   // Outras lógicas, se necessário
 }
