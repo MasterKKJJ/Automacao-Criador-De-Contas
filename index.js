@@ -32,6 +32,10 @@ async function getUserCredentials() {
     ? lastNameInput.trim()
     : Math.random().toString(36).substring(2, 15);
 
+  const passwordInput = await askQuestion("Informe a senha: ");
+  const password = passwordInput.trim()
+    ? passwordInput
+    : Math.random().toString(36).substring(2, 15) + "1348891";
   console.log("\nEscolha entre as opções:");
   console.log("1) Passar um email seu");
   console.log(
@@ -48,8 +52,8 @@ async function getUserCredentials() {
       break;
     case "2": {
       // Chama a função CriarEmail, que retorna um objeto contendo o email temporário gerado
-      const { email: tempEmail } = await CriarEmail();
-      email = tempEmail;
+      const { email: Email } = await CriarEmail();
+      email = Email;
       break;
     }
     case "3":
@@ -63,10 +67,6 @@ async function getUserCredentials() {
 
   const company = Math.random().toString(36).substring(2, 15);
 
-  const passwordInput = await askQuestion("Informe a senha: ");
-  const password = passwordInput.trim()
-    ? passwordInput
-    : Math.random().toString(36).substring(2, 15);
   console.clear();
   console.log(`Você estará criando conta com esses dados:
       User: ${user}
@@ -104,7 +104,7 @@ async function main() {
     //   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"
     // );
 
-    // await BinaryEdge(page, creds);
+    await BinaryEdge(page, creds);
     await SecurityTrails(page, browser, creds);
   } catch (error) {
     console.error("Erro na execução:", error);
@@ -117,3 +117,5 @@ async function main() {
 }
 
 main();
+
+module.exports = { askQuestion };

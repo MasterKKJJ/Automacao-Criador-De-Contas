@@ -1,3 +1,18 @@
+const readline = require("readline");
+
+function askQuestion(query) {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    rl.question(query, answer => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
 // Função auxiliar para extrair o texto de um seletor
 async function getElementText(page, selector) {
   return await page.evaluate(sel => {
@@ -99,15 +114,9 @@ async function EscreverNosCamposCadastro(page, browser, creds) {
 
   // Loop para tentar corrigir enquanto "erro" for nulo, "invalid recaptcha" ou undefined
   while (
-    erro !== "congratulations! your account has been created successfully!" &&
-    (erro === null || erro === undefined || erro === "invalid recaptcha")
+    erro !== "Congratulations! Your account has been created successfully!" &&
+    (erro !== null || erro !== undefined || erro !== "invalid recaptcha")
   ) {
-    try {
-      erro = await capturarErro(page);
-    } catch (e) {
-      console.log("Erro ao avaliar o elemento de erro:", e);
-      erro = await capturarErro(page);
-    }
     try {
       const newPage = await browser.newPage();
       await newPage.goto("https://google.com", { waitUntil: "networkidle0" });
@@ -120,28 +129,36 @@ async function EscreverNosCamposCadastro(page, browser, creds) {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Tenta clicar no botão, aguardando que o elemento esteja presente
+    console.log("Aqui a url é: " + page.url());
     try {
-      await page.waitForSelector(buttonSelector, { timeout: 5000 });
+      // await page.waitForSelector(buttonSelector, { timeout: 5000 });
       console.log("Clicando no botão para tentar novamente...");
       await page.click(buttonSelector, { waitUntil: "networkidle0" });
     } catch (clickError) {
       try {
         if (page.url() === "https://securitytrails.com/app/verify") {
           await page.reload({ waitUntil: "networkidle0" });
-          console.log(page.url());
+          console.log("2 Aqui a url é: " + page.url());
           console.log("Página recarregada por ausência do botão.");
+          break;
           // ele vem para cá e depois da um reload e fica abrindo o google novamente
         }
       } catch (reloadError) {
         console.log("Erro ao recarregar a página:", reloadError);
       }
     }
-
+    try {
+      erro = await capturarErro(page);
+    } catch (e) {
+      console.log("Erro ao avaliar o elemento de erro:", e);
+      erro = await capturarErro(page);
+    }
+    console.log(erro);
     // Aguarda 1 segundo antes de reavaliar
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  console.log("Saiu");
+  // console.log("Saiu");
   await new Promise(r => setTimeout(r, 3000));
   await AcessarApi(page);
 }
@@ -154,14 +171,15 @@ async function AcessarApi(page) {
 
   // Tenta clicar no botão que aciona a criação de API
 
-  await await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
   const buttonSelector =
     "#domain-pages > div > div.bg-white.dark\\:bg-black-90.rounded-2xl.p-6.mt-6 > div > div.text-right.my-6 > button";
   await page.click(buttonSelector, { waitUntil: "networkidle0" });
 
-  const notaleatoria = Math.floor(Math.random() * 100000) + 1;
+  const notaleatoria = Math.random().toString(36).substring(2, 15) + "899u";
   const inputSelector =
     "#dialog-container > div > div.dialog-body.overflow-y-auto.break-words.min-h-\\[6rem\\].scroll-smooth.px-2.py-1 > div > form > input";
+  await page.waitForSelector(inputSelector, { timeout: 2000 });
   await page.type(inputSelector, String(notaleatoria), { delay: 100 });
 
   const confirmButtonSelector =
@@ -169,6 +187,7 @@ async function AcessarApi(page) {
   await page.click(confirmButtonSelector);
 
   // Extrai o API key (ou outro valor) da tabela
+  await new Promise(r => setTimeout(r, 2000));
   const api = await page.evaluate(() => {
     const td = document.querySelector(
       "#domain-pages > div > div.bg-white.dark\\:bg-black-90.rounded-2xl.p-6.mt-6 > div > div.table-container > table > tbody > tr > td:nth-child(1)"
@@ -176,11 +195,11 @@ async function AcessarApi(page) {
     return td ? td.textContent.trim() : "";
   });
   console.log(api);
+  return api;
 }
 
 async function SecurityTrails(page, browser, creds) {
   await EscreverNosCamposCadastro(page, browser, creds);
-
   // Outras lógicas, se necessário
 }
 

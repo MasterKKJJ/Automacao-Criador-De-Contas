@@ -10,24 +10,27 @@ async function CriarEmail() {
       connectOption: { defaultViewport: null },
       turnstile: true
     }));
-
-    // Define o endpoint do temp-mail e navega até ele
     const endpoint = "https://temp-mail.org/pt/";
     await page.goto(endpoint, { waitUntil: "networkidle0" });
 
     await page.waitForSelector("#mail", { timeout: 10000 });
-    // Loop para extrair o email somente quando ele for válido
+
+    console.log("Chegouuuuuuuuu");
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     let email = null;
     do {
-      // Extrai o conteúdo do elemento
+      // Extrai o conteúdo do elemento #mail
       email = await page.evaluate(() => {
         const mailEl = document.querySelector("#mail");
-        return mailEl ? (mailEl.value || mailEl.innerText).trim() : null;
+        return mailEl ? mailEl.value.trim() : null;
       });
-      // Se o email for nulo ou contiver "A carregar" (por exemplo, pode ser "A carregar..." ou similar),
-      // aguarda um pouco antes de tentar novamente.
-      if (!email || email.toLowerCase().includes("a carregar...")) {
-        email = null; // força continuar o loop
+      console.log("Email é: ", email);
+
+      // Se não tiver email ou se o email ainda contiver "a carregar", aguarda antes de tentar novamente
+      if (!email || email.toLowerCase().includes("a carregar")) {
+        console.log("Email inválido, aguardando...");
+        email = null; // Garante que o loop continue
         await new Promise(r => setTimeout(r, 1000));
       }
     } while (!email);
