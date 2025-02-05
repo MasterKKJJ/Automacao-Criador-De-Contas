@@ -49,7 +49,7 @@ async function EscreverNosCamposCadastro(page, browser, creds) {
 
   await page.goto(signupUrl, { waitUntil: "networkidle0" });
   await page.waitForNavigation({ waitUntil: "networkidle2" });
-  await delay(6000);
+  //teste await delay(6000);
 
   // Verifica se o formulário esperado está presente
   // Caso o campo "#name" não exista, pode ser que um captcha ou outro elemento esteja no lugar
@@ -62,19 +62,18 @@ async function EscreverNosCamposCadastro(page, browser, creds) {
   }
 
   // Preenche os campos
-  await page.type("#name", creds.user, { delay: 60 });
-  await page.type("#company", creds.company, { delay: 100 });
-  await page.type("#email", creds.email, { delay: 70 });
-  await page.type("#password", creds.password, { delay: 45 });
+  await page.type("#name", creds.user, { delay: 40 });
+  await page.type("#company", creds.company, { delay: 50 });
+  await page.type("#email", creds.email, { delay: 30 });
+  await page.type("#password", creds.password, { delay: 55 });
   await page.click(
     "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(6) > div.flex.items-center > div.checkbox > label"
   );
   await delay(1000);
 
-  await page.click(
-    "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(7) > span > button",
-    { waitUntil: "networkidle0" }
-  );
+  let btn =
+    "#app-content > div > div.relative.bg-white.dark\\:bg-black-90.w-full.p-8.grid > div > div > div > form > div:nth-child(7) > span > button";
+  await page.click(btn, { waitUntil: "networkidle0" });
 
   await delay(3000);
   let primeiraTentativa = true;
@@ -159,7 +158,8 @@ async function EscreverNosCamposCadastro(page, browser, creds) {
   }
 
   // console.log("Saiu");
-  await new Promise(r => setTimeout(r, 3000));
+  // await new Promise(r => setTimeout(r, 3000));
+  // await page.waitForNavigation({ waitUntil: "networkidle2" });
   await AcessarApi(page);
 }
 

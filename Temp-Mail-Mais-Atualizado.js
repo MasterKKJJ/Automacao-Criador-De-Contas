@@ -159,9 +159,13 @@ async function CriarEmail() {
             console.log("Link de verificação encontrado:", verifyHref);
             // Abre a aba de verificação
             const verifyPage = await browser.newPage();
-            await verifyPage.goto(verifyHref, { waitUntil: "networkidle2" });
+            await verifyPage.goto(verifyHref, {
+              waitUntil: ["domcontentloaded", "networkidle2"]
+            });
 
-            await new Promise(r => setTimeout(r, 9000));
+            // await new Promise(r => setTimeout(r, 9000));
+            await new Promise(r => setTimeout(r, 4000));
+
             // Fecha a aba de verificação
             await verifyPage.close();
           } else {
